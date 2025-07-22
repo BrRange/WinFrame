@@ -4,11 +4,12 @@
 #include <windows.h>
 
 #define NOCALL static inline
+#define UINT unsigned
 
 #define MOUSE_LEFT_BTN (1 << 0)
 #define MOUSE_MIDDLE_BTN (1 << 1)
 #define MOUSE_RIGHT_BTN (1 << 2)
-#define MOUSE_EXTRA_BTN(x) (1 << (2 + x))
+#define MOUSE_EXTRA_BTN(x) (1 << (2 + (x)))
 
 #define CURSOR_INDEX_IDLE 0
 #define CURSOR_INDEX_POINT 1
@@ -155,7 +156,8 @@ struct WindowFrame{
   struct keyboardHandler keyH;
   struct mouseHandler mouseH;
   struct paintHandler paintH;
-  void (*paintProc)(struct WindowFrame*, Window);
+  void **GUI;
+  void (*paintProc)(struct WindowFrame*, Window, void **GUI);
 };
 typedef struct WindowFrame WindowFrame;
 
@@ -191,6 +193,13 @@ void closeWindowFrame(WindowFrame *frame){
     DeleteObject(frame->paintH.brush);
   UnregisterClass(frame->class.lpszClassName, frame->class.hInstance);
   *frame = (WindowFrame){};
+}
+
+void handleEvents(Event *event, Window window){
+  while (PeekMessage(event, window, 0, 0, 1)) {
+    TranslateMessage(event);
+    DispatchMessage(event);
+  }
 }
 
 Register CALLBACK procedure(Window window, UINT code, size_t flag, Register data){
@@ -301,7 +310,7 @@ Register CALLBACK procedure(Window window, UINT code, size_t flag, Register data
   }
   case WM_PAINT:{
     WindowFrame *frame = (WindowFrame*)GetWindowLongPtr(window, GWLP_USERDATA);
-    if(frame->paintProc) frame->paintProc(frame, window);
+    if(frame->paintProc) frame->paintProc(frame, window, frame->GUI);
     break;
   }
   default:
