@@ -1,64 +1,84 @@
 #include <stdio.h>
 #include "winframeGUI.h"
 
-Register strLen(const char *str){
-  register const char *end = str;
-  while(*end) ++end;
-  return (Register)(end - str);
-}
-
 void mainRender(WindowFrame *frame, Window window, void **GUI){
-  struct paintHandler *paintH = &frame->paintH;
-  HDC hdc = BeginPaint(window, &paintH->painter);
-  SetBkMode(hdc, TRANSPARENT);
-
   RECT rectBuf;
   GetClientRect(window, &rectBuf);
+  int clientW = rectBuf.right - rectBuf.left;
+  int clientH = rectBuf.bottom - rectBuf.top;
+
+  if(clientW <= 0 || clientH <= 0) return;
+  if(!frame->bitmap){
+    setBitmap(frame, window);
+    return;
+  }
+
+  struct paintHandler *paintH = &frame->paintH;
+  HDC hdc = BeginPaint(window, &paintH->painter);
+
+  HDC contx = CreateCompatibleDC(hdc);
+  HBITMAP refBitmap = (HBITMAP)SelectObject(contx, frame->bitmap);
+
+  SetBkMode(contx, TRANSPARENT);
   setPaintPen(paintH, PS_SOLID, 1, 0x20a5da);
   setPaintBrush(paintH, RGB(0, 0, 20));
-  SelectObject(hdc, paintH->pen);
-  SelectObject(hdc, paintH->brush);
+  SelectObject(contx, paintH->pen);
+  SelectObject(contx, paintH->brush);
 
-  Rectangle(hdc, 0, 0, rectBuf.right - rectBuf.left, rectBuf.bottom - rectBuf.top);
+  Rectangle(contx, 0, 0, clientW, clientH);
 
-  setPaintBrush(paintH, RGB(255, 255, 255));
-  SelectObject(hdc, paintH->brush);
-
-  SIZE txtdim;
-  const char *text = "This rectangle stretches to fit the text it contains. Very intriguing indeed.";
-  size_t textLen = strLen(text);
-  GetTextExtentPoint32(hdc, text, textLen, &txtdim);
-  Rectangle(hdc, 0, 0, txtdim.cx + 20, txtdim.cy + 20);
-  TextOut(hdc, 10, 10, text, textLen);
-
-  drawRect(GUI[0], &frame->paintH, hdc);
+  drawTextBox(GUI[0], paintH, contx);
   
+  BitBlt(
+    hdc,
+    paintH->painter.rcPaint.left,
+    paintH->painter.rcPaint.top,
+    paintH->painter.rcPaint.right - paintH->painter.rcPaint.left,
+    paintH->painter.rcPaint.bottom - paintH->painter.rcPaint.top,
+    contx,
+    paintH->painter.rcPaint.left,
+    paintH->painter.rcPaint.top,
+    SRCCOPY
+  );
+
+  SelectObject(contx, refBitmap);
+  DeleteDC(contx);
   EndPaint(window, &paintH->painter);
 }
 
 void mainTick(WindowFrame *frame, Window window){
   RECT rectBuf;
-  convertToWinRect(frame->GUI[0], &rectBuf);
-  InvalidateRect(window, &rectBuf, 1);
-  
-  setRectPos(frame->GUI[0], frame->mouseH.x - ((GUIRect*)frame->GUI[0])->w / 2, frame->mouseH.y - ((GUIRect*)frame->GUI[0])->h / 2);
+  GetClientRect(window, &rectBuf);
 
-  convertToWinRect(frame->GUI[0], &rectBuf);
-  InvalidateRect(window, &rectBuf, 1);
+  GUITextBox *txtbox = frame->GUI[0];
+  int wincx = (rectBuf.left + rectBuf.right) >> 1;
+  int wincy = (rectBuf.top + rectBuf.bottom) >> 1;
+  
+  convertRectToWinRect(&txtbox->rect, &rectBuf);
+  InvalidateRect(window, &rectBuf, 0);
+
+  setTextRectToFit(frame->GUI[0], window);
+  setTextRectPos(txtbox, wincx - txtbox->rect.w / 2, wincy - txtbox->rect.h / 2);
+  
+  convertRectToWinRect(&txtbox->rect, &rectBuf);
+  InvalidateRect(window, &rectBuf, 0);
 }
 
 int main() {
   WindowFrame frame = newWindowFrame();
   frame.paintProc = mainRender;
-
-  GUIRect box = {};
-  setRectPen(&box, PS_SOLID, 1, 0x20a5da);
-  setRectBrush(&box, RGB(63, 63, 63));
-  setRectDim(&box, 20, 20);
-  void *GUIElements[] = {&box};
+  
+  GUITextBox txtbox = {};
+  setTextText(&txtbox, "Hello, my name is name");
+  setTextFontColor(&txtbox, 0x0000ff);
+  setTextPadding(&txtbox, 20);
+  setRectPen(&txtbox.rect, PS_SOLID, 1, 0x0000ff);
+  setRectBrush(&txtbox.rect, 0xdddddd);
+  
+  void *GUIElements[] = {&txtbox};
   frame.GUI = GUIElements;
-
-  Window window = newWindow(&frame, "AI manager", -1u/2+1, -1u/2+1, -1u/2+1, -1u/2+1);
+  
+  Window window = newWindow(&frame, "AI manager", 0x80000000, 0x80000000, 0x80000000, 0x80000000);
   ShowWindow(window, 1);
   updateCursor(&frame.curH);
 
@@ -67,6 +87,7 @@ int main() {
     
     handleEvents(&event, 0);
     mainTick(&frame, window);
+
     UpdateWindow(window);
 
     if (sysTapped(VK_ESCAPE)) {
