@@ -4,7 +4,6 @@
 #include <windows.h>
 
 #define NOCALL static inline
-#define unsigned unsigned
 
 #define MOUSE_LEFT_BTN (1 << 0)
 #define MOUSE_MIDDLE_BTN (1 << 1)
