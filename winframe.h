@@ -184,7 +184,14 @@ void setBitmap(WindowFrame *frame, Window window){
     frame->bitmap = NULL;
   }
   HDC context = GetDC(window);
-  frame->bitmap = CreateCompatibleBitmap(context, rectBuf.right - rectBuf.left, rectBuf.bottom - rectBuf.top);
+  int w = rectBuf.right - rectBuf.left;
+  int h = rectBuf.bottom - rectBuf.top;
+  if(w <= 0 || h <= 0){
+    frame->bitmap = 0;
+    ReleaseDC(window, context);
+    return;  
+  }
+  frame->bitmap = CreateCompatibleBitmap(context, w, h);
   ReleaseDC(window, context);
 }
 
@@ -295,8 +302,13 @@ Register CALLBACK procedure(Window window, unsigned code, size_t flag, Register 
   }
   case WM_SIZE: {
     WindowFrame *frame = (WindowFrame *)GetWindowLongPtr(window, GWLP_USERDATA);
-    setBitmap(frame, window);
-    InvalidateRect(window, 0, 0);
+    if(flag == SIZE_MINIMIZED){
+      DeleteObject(frame->bitmap);
+      frame->bitmap = 0;
+    } else{
+      setBitmap(frame, window);
+      InvalidateRect(window, 0, 0);
+    }
     break;
   }
   case WM_SETCURSOR: {

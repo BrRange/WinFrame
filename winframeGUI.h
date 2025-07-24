@@ -4,9 +4,18 @@
 #include "winframe.h"
 
 Register strLen(const char *str){
-  register const char *end = str;
+  const char *end = str;
   while(*end) ++end;
   return (Register)(end - str);
+}
+
+void strCopy(const char *src, char *dest, Register maxLen){
+  while(*src && maxLen > 0){
+    *dest = *src;
+    ++src;
+    ++dest;
+    --maxLen;
+  }
 }
 
 struct GUIRect{
@@ -55,17 +64,36 @@ void getRectCenter(GUIRect *rect, int *x, int *y){
   *y = rect->y + rect->h / 2;
 }
 
+int getCollidingRect(const GUIRect *rect, int x, int y){
+  x -= rect->x;
+  y -= rect->y;
+  return x >= 0 && x <= rect->w && y >= 0 && y <= rect->h;
+}
+
 struct GUITextBox{
-  const char *text;
+  char *text;
   Register textLen;
+  Register maxLen;
   unsigned fontColor;
   int padding;
   GUIRect rect;
 };
 typedef struct GUITextBox GUITextBox;
 
-void setTextText(GUITextBox *txtbox, const char *text){
+void setTextStatic(GUITextBox *txtbox, const char *text){
+  txtbox->text = (char*)text;
+  txtbox->textLen = strLen(text);
+  txtbox->maxLen = -1;
+}
+
+void setTextBuffer(GUITextBox *txtbox, char *text, Register maxLen){
   txtbox->text = text;
+  txtbox->textLen = strLen(text);
+  txtbox->maxLen = maxLen;
+}
+
+void setTextContent(GUITextBox *txtbox, const char *text){
+  strCopy(text, txtbox->text, txtbox->maxLen);
   txtbox->textLen = strLen(text);
 }
 
@@ -99,9 +127,22 @@ void drawTextBox(GUITextBox *txtbox, struct paintHandler *paintH, HDC hdc){
   TextOut(hdc, txtbox->rect.x + txtbox->padding, txtbox->rect.y + txtbox->padding, txtbox->text, txtbox->textLen);
 }
 
-struct ClickBox{
+struct GUIClickBox{
   GUIRect *rect;
+  int clicked;
 };
-typedef struct ClickBox ClickBox;
+typedef struct GUIClickBox GUIClickBox;
+
+int tickClickBox(GUIClickBox *clickBox, int mouseBtn, int x, int y){
+  if (!mouseBtn){
+    clickBox->clicked = 0;
+    return 0;
+  }
+  if(getCollidingRect(clickBox->rect, x, y))
+    clickBox->clicked |= (clickBox->clicked & mouseBtn ? mouseBtn | 0x80000000 : mouseBtn);
+  else
+    clickBox->clicked &= ~(mouseBtn | 0x80000000);
+  return clickBox->clicked & (mouseBtn | 0x80000000);
+} 
 
 #endif
