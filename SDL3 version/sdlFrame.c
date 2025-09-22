@@ -1,13 +1,13 @@
 #include "sdlFrame.h"
 
 void KeyboardHandler_pressKey(KeyboardHandler *kbH, SDL_Keycode key){
-  [[unlikely]] if(kbH->used >= 6) return;
+  if(kbH->used >= 6) return;
   for(Uint32 i = 0; i < kbH->used; ++i)
-  [[unlikely]] if(kbH->keys[i] == key) return;
+  if(kbH->keys[i] == key) return;
   kbH->keys[kbH->used] = key;
 }
 void KeyboardHandler_releaseKey(KeyboardHandler *kbH, SDL_Keycode key){
-  [[unlikely]] if(!key) return;
+  if(!key) return;
   for(Uint32 i = 0; i < kbH->used; ++i)
   if(kbH->keys[i] == key){
     kbH->keys[i] = 0;
