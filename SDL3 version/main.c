@@ -8,7 +8,7 @@
 #include "sdlFrameGUI.c"
 
 void mainTick(SDL_Window *win, SDL_Renderer *rend, MenuState *menu){
-  printf("\rMouse Pos: (%3.f, %3.f)", menu->moHandler->pos.x, menu->moHandler->pos.y);
+  printf("\rMouse Pos: (%3.f, %3.f)", menu->mouseH->pos.x, menu->mouseH->pos.y);
 }
 void mainRender(SDL_Window *win, SDL_Renderer *rend, MenuState *menu){
   GUIRect *gRect = Arena_get(&menu->memory, 0);

@@ -42,11 +42,11 @@ Uint8 MouseHandler_hasButton(MouseHandler *mouseH, Uint8 button){
     if(mouseH->up & button){
       mouseH->down &= ~button;
       mouseH->up &= ~button;
-      return 1;
+      return MOUSE_CLICK;
     }
-    return 2;
+    return MOUSE_HOLD;
   }
-  return 0;
+  return MOUSE_NONE;
 }
 void MouseHandler_scroll(MouseHandler *mouseH, Sint16 scroll){
   mouseH->scroll = scroll;

@@ -19,6 +19,7 @@ void KeyboardHandler_clear(KeyboardHandler*);
 #define MOUSEB_MID (1 << 1)
 #define MOUSEB_RIGHT (1 << 2)
 #define MOUSEB_EXTRA(x) (1 << (3 + (x)))
+#define MOUSE_NONE 0
 #define MOUSE_CLICK 1
 #define MOUSE_HOLD 2
 
