@@ -19,30 +19,32 @@ void KeyboardHandler_clear(KeyboardHandler*);
 #define MOUSEB_MID (1 << 1)
 #define MOUSEB_RIGHT (1 << 2)
 #define MOUSEB_EXTRA(x) (1 << (3 + (x)))
+#define MOUSE_CLICK 1
+#define MOUSE_HOLD 2
 
 struct MouseHandler{
   SDL_FPoint pos;
-  Uint8 button;
-  Uint8 clickNum;
+  Uint8 up;
+  Uint8 down;
   Sint16 scroll;
 };
 typedef struct MouseHandler MouseHandler;
 
-void MouseHandler_move(MouseHandler *moH, float x, float y);
-SDL_FPoint MouseHandler_getPos(MouseHandler *moH);
-void MouseHandler_pressButton(MouseHandler *moH, Uint8 button, Uint8 clicks);
-void MouseHandler_releaseButton(MouseHandler *moH, Uint8 button);
-bool MouseHandler_hasButton(MouseHandler *moH, Uint8 button);
-void MouseHandler_scroll(MouseHandler *moH, Sint16 scroll);
-void MouseHandler_clear(MouseHandler *moH);
+void MouseHandler_move(MouseHandler*, float x, float y);
+SDL_FPoint MouseHandler_getPos(MouseHandler*);
+void MouseHandler_pressButton(MouseHandler*, Uint8 button);
+void MouseHandler_releaseButton(MouseHandler*, Uint8 button);
+Uint8 MouseHandler_hasButton(MouseHandler*, Uint8 button);
+void MouseHandler_scroll(MouseHandler*, Sint16 scroll);
+void MouseHandler_clear(MouseHandler*);
 
 struct MenuState;
 typedef void (*MenuFunc)(SDL_Window*, SDL_Renderer*, struct MenuState*);
 
 struct MenuState{
   MenuFunc tick, render;
-  KeyboardHandler *kbHandler;
-  MouseHandler *moHandler;
+  KeyboardHandler *keyboardH;
+  MouseHandler *mouseH;
   Arena memory;
 };
 typedef struct MenuState MenuState;
@@ -50,5 +52,8 @@ typedef struct MenuState MenuState;
 
 MenuState MenuState_new(MenuFunc fnTick, MenuFunc fnRender, KeyboardHandler*, MouseHandler*, Uint32 auxBytes);
 void MenuState_destroy(MenuState *menu);
+
+bool FPoint_equal(SDL_FPoint*, SDL_FPoint*);
+void FPoint_copy(SDL_FPoint *dest, SDL_FPoint *src);
 
 #endif

@@ -24,31 +24,43 @@ bool KeyboardHandler_hasKey(KeyboardHandler *kbH, SDL_Keycode key){
   return false;
 }
 
-void MouseHandler_move(MouseHandler *moH, float x, float y){
-  moH->pos = (SDL_FPoint){.x = x, .y = y};
+void MouseHandler_move(MouseHandler *mouseH, float x, float y){
+  mouseH->pos = (SDL_FPoint){.x = x, .y = y};
 }
-void MouseHandler_pressButton(MouseHandler *moH, Uint8 button, Uint8 clicks){
-  moH->button |= button, moH->clickNum = clicks;
+void MouseHandler_pressButton(MouseHandler *mouseH, Uint8 button){
+  SDL_assert(button > 0 && button <= 8);
+  button = 1 << (button - 1);
+  mouseH->down = button;
 }
-void MouseHandler_releaseButton(MouseHandler *moH, Uint8 button){
-  moH->button &= ~button;
+void MouseHandler_releaseButton(MouseHandler *mouseH, Uint8 button){
+  SDL_assert(button > 0 && button <= 8);
+  button = 1 << (button - 1);
+  mouseH->up = button;
 }
-bool MouseHandler_hasButton(MouseHandler *moH, Uint8 button){
-  return moH->button & button;
+Uint8 MouseHandler_hasButton(MouseHandler *mouseH, Uint8 button){
+  if(mouseH->down & button){
+    if(mouseH->up & button){
+      mouseH->down &= ~button;
+      mouseH->up &= ~button;
+      return 1;
+    }
+    return 2;
+  }
+  return 0;
 }
-void MouseHandler_scroll(MouseHandler *moH, Sint16 scroll){
-  moH->scroll = scroll;
+void MouseHandler_scroll(MouseHandler *mouseH, Sint16 scroll){
+  mouseH->scroll = scroll;
 }
-void MouseHandler_clear(MouseHandler *moH){
-  *moH = (MouseHandler){.pos = moH->pos};
+void MouseHandler_clear(MouseHandler *mouseH){
+  *mouseH = (MouseHandler){.pos = mouseH->pos};
 }
 
-MenuState MenuState_new(MenuFunc fnTick, MenuFunc fnRender, KeyboardHandler *kbHandler, MouseHandler *moHandler, Uint32 auxBytes){
+MenuState MenuState_new(MenuFunc fnTick, MenuFunc fnRender, KeyboardHandler *keyboardH, MouseHandler *mouseH, Uint32 auxBytes){
   MenuState menu = {
     .tick = fnTick,
     .render = fnRender,
-    .kbHandler = kbHandler,
-    .moHandler = moHandler,
+    .keyboardH = keyboardH,
+    .mouseH = mouseH,
     .memory = Arena_new(auxBytes)
   };
   return menu;
@@ -56,4 +68,13 @@ MenuState MenuState_new(MenuFunc fnTick, MenuFunc fnRender, KeyboardHandler *kbH
 void MenuState_destroy(MenuState *menu){
   Arena_destroy(&menu->memory);
   *menu = (MenuState){0};
+}
+
+bool FPoint_equal(SDL_FPoint *a, SDL_FPoint *b){
+  Uint64 *longA = (void*)a, *longB = (void*)b;
+  return *longA == *longB;
+}
+void FPoint_copy(SDL_FPoint *dest, SDL_FPoint *src){
+  Uint64 *longDest = (void*)dest, *longSrc = (void*)src;
+  *longDest = *longSrc;
 }
