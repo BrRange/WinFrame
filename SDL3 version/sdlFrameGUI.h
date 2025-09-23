@@ -22,22 +22,25 @@ void GUIRect_setDim(GUIRect*, float w, float h);
 void GUIRect_setFillColor(GUIRect*, SDL_Color);
 void GUIRect_setBorderColor(GUIRect*, SDL_Color);
 void GUIRect_draw(GUIRect*, SDL_Renderer*);
+void GUIRect_destroy(GUIRect*);
 
 struct GUITextBox{
-  GUIRect gRect;
+  SDL_FRect bounds;
   TTF_Font *font;
   SDL_Color textColor;
-  bool wrap;
-  Uint16 padding;
   char *buffer;
   SDL_Texture *preRender;
+  bool outDated;
 };
 typedef struct GUITextBox GUITextBox;
 
-GUITextBox GUITextBox_new(GUIRect, TTF_Font*, SDL_Color textColor, bool wrap, char *buffer, Uint16 padding);
+GUITextBox GUITextBox_new(float x, float y, float w, float h, TTF_Font*, SDL_Color, char *buffer);
+void GUITextBox_setPos(GUITextBox*, float x, float y);
+void GUITextBox_setDim(GUITextBox*, float w, float h);
 void GUITextBox_setFont(GUITextBox*, TTF_Font*);
 void GUITextBox_setTextColor(GUITextBox*, SDL_Color);
-void GUITextBox_setWrapping(GUITextBox*, bool);
+void GUITextBox_setBuffer(GUITextBox*, char*);
 void GUITextBox_draw(GUITextBox*, SDL_Renderer*);
+void GUITextBox_destroy(GUITextBox*);
 
 #endif

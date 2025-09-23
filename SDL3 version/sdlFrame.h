@@ -25,9 +25,9 @@ void KeyboardHandler_clear(KeyboardHandler*);
 
 struct MouseHandler{
   SDL_FPoint pos;
+  float scroll;
   Uint8 up;
   Uint8 down;
-  Sint16 scroll;
 };
 typedef struct MouseHandler MouseHandler;
 
@@ -36,7 +36,8 @@ SDL_FPoint MouseHandler_getPos(MouseHandler*);
 void MouseHandler_pressButton(MouseHandler*, Uint8 button);
 void MouseHandler_releaseButton(MouseHandler*, Uint8 button);
 Uint8 MouseHandler_hasButton(MouseHandler*, Uint8 button);
-void MouseHandler_scroll(MouseHandler*, Sint16 scroll);
+void MouseHandler_scroll(MouseHandler*, float scroll);
+float MouseHandler_getScroll(MouseHandler*);
 void MouseHandler_clear(MouseHandler*);
 
 struct MenuState;

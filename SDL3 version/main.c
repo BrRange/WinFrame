@@ -7,37 +7,49 @@
 #include "sdlFrame.c"
 #include "sdlFrameGUI.c"
 
+#define stroing(_str) #_str
+
 void mainTick(SDL_Window *win, SDL_Renderer *rend, MenuState *menu){
-  printf("\rMouse Pos: (%3.f, %3.f)", menu->mouseH->pos.x, menu->mouseH->pos.y);
+  GUITextBox *tBox = Arena_get(&menu->memory, 0);
+  int winw, winh;
+  SDL_GetWindowSizeInPixels(win, &winw, &winh);
+  GUITextBox_setDim(tBox, winw - 20, winh - 20);
+  if(MouseHandler_hasButton(menu->mouseH, MOUSEB_LEFT) == MOUSE_CLICK)
+    GUITextBox_setBuffer(tBox, "Left");
+  if(MouseHandler_hasButton(menu->mouseH, MOUSEB_RIGHT) == MOUSE_CLICK)
+    GUITextBox_setBuffer(tBox, "Right");
+  if(MouseHandler_hasButton(menu->mouseH, MOUSEB_MID) == MOUSE_CLICK)
+    GUITextBox_setBuffer(tBox, "Middle");
+  float scroll = MouseHandler_getScroll(menu->mouseH);
+  if(scroll){
+    float prevSize = TTF_GetFontSize(tBox->font);
+    TTF_SetFontSize(tBox->font, prevSize + scroll);
+    tBox->outDated = true;
+  }
 }
+
 void mainRender(SDL_Window *win, SDL_Renderer *rend, MenuState *menu){
-  GUIRect *gRect = Arena_get(&menu->memory, 0);
-  TTF_Font *font = *(TTF_Font**)Arena_get(&menu->memory, sizeof(GUIRect));
-  SDL_Surface *winSurf = SDL_GetWindowSurface(win);
+  GUITextBox *tBox = Arena_get(&menu->memory, 0);
 
   SDL_SetRenderDrawColor(rend, Hex_expandRGB(0x000020));
   SDL_RenderClear(rend);
 
-  SDL_Surface *textG = TTF_RenderText_Blended(font, "Hello world!", 0, Color_hex(0x800000ff));
-  SDL_Texture *textT = SDL_CreateTextureFromSurface(rend, textG);
-  SDL_DestroySurface(textG);
-  
-  GUIRect_draw(gRect, rend);
-  SDL_RenderTexture(rend, textT, NULL, NULL);
-  SDL_DestroyTexture(textT);
+  GUITextBox_draw(tBox, rend);
 }
 
 Sint32 main(){
   SDL_Init(-1);
   
   TTF_Init();
-
+  
   SDL_Window *win;
   SDL_Renderer *rend;
   SDL_CreateWindowAndRenderer("Main", 420, 420, SDL_WINDOW_RESIZABLE, &win, &rend);
   SDL_SetWindowPosition(win, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+  
+  SDL_SetRenderDrawBlendMode(rend, SDL_BLENDMODE_BLEND_PREMULTIPLIED);
 
-  TTF_Font *font = TTF_OpenFont("fonts/font.ttf", 128.f);
+  TTF_Font *font = TTF_OpenFont("fonts/font.ttf", 32.f);
 
   SDL_Event eve = {0};
   SDL_Time start, end = 0;
@@ -49,8 +61,9 @@ Sint32 main(){
   MouseHandler generalMo = {0};
 
   MenuState mainMenu = MenuState_new(mainTick, mainRender, &generalKb, &generalMo, 69420);
-  *(GUIRect*)Arena_alloc(&mainMenu.memory, sizeof(GUIRect)) = GUIRect_new(10, 10, 300, 200, Color_hex(0xdaa520), Color_hex(0x1a1a1a));
-  *(size_t*)Arena_alloc(&mainMenu.memory, sizeof(void*)) = (size_t)font;
+  *(GUITextBox*) Arena_alloc(&mainMenu.memory, sizeof(GUITextBox)) = GUITextBox_new(
+    10, 10, 0, 0, font, Color_hex(0xffffffff), "Init"
+  );
 
   while(eve.type != SDL_EVENT_QUIT){
     SDL_GetCurrentTime(&end);

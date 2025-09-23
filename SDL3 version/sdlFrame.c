@@ -30,12 +30,12 @@ void MouseHandler_move(MouseHandler *mouseH, float x, float y){
 void MouseHandler_pressButton(MouseHandler *mouseH, Uint8 button){
   SDL_assert(button > 0 && button <= 8);
   button = 1 << (button - 1);
-  mouseH->down = button;
+  mouseH->down |= button;
 }
 void MouseHandler_releaseButton(MouseHandler *mouseH, Uint8 button){
   SDL_assert(button > 0 && button <= 8);
   button = 1 << (button - 1);
-  mouseH->up = button;
+  mouseH->up |= button;
 }
 Uint8 MouseHandler_hasButton(MouseHandler *mouseH, Uint8 button){
   if(mouseH->down & button){
@@ -48,8 +48,13 @@ Uint8 MouseHandler_hasButton(MouseHandler *mouseH, Uint8 button){
   }
   return MOUSE_NONE;
 }
-void MouseHandler_scroll(MouseHandler *mouseH, Sint16 scroll){
+void MouseHandler_scroll(MouseHandler *mouseH, float scroll){
   mouseH->scroll = scroll;
+}
+float MouseHandler_getScroll(MouseHandler *mouseH){
+  Sint16 scroll = mouseH->scroll;
+  mouseH->scroll = 0.f;
+  return scroll;
 }
 void MouseHandler_clear(MouseHandler *mouseH){
   *mouseH = (MouseHandler){.pos = mouseH->pos};

@@ -47,54 +47,83 @@ void GUIRect_draw(GUIRect *gRect, SDL_Renderer *rend){
   SDL_RenderRect(rend, (void*)gRect);
 }
 
-static void GUITextBox_preRender(GUITextBox *tBox){
-  SDL_Surface *canvas = tBox->wrap ? TTF_RenderText_Blended_Wrapped() : TTF_RenderText_Blended;
+void GUIRect_destroy(GUIRect *gRect){
+  *gRect = (GUIRect){0};
 }
 
-GUITextBox GUITextBox_new(GUIRect gRect, TTF_Font *font, SDL_Color textColor, bool wrap, char *buffer, Uint16 padding){
+static void GUITextBox_preRender(GUITextBox *tBox, SDL_Renderer *rend){
+  tBox->outDated = false;
+  SDL_Surface *canvas = TTF_RenderText_Blended_Wrapped(tBox->font, tBox->buffer, 0, tBox->textColor, tBox->bounds.w);
+  if(tBox->preRender) SDL_DestroyTexture(tBox->preRender);
+  tBox->preRender = SDL_CreateTextureFromSurface(rend, canvas);
+  SDL_DestroySurface(canvas);
+}
+
+GUITextBox GUITextBox_new(float x, float y, float w, float h, TTF_Font *font, SDL_Color textColor, char *buffer){
   SDL_assert(font);
   GUITextBox tBox = {
-    .gRect = gRect,
+    .bounds = {
+      .x = x,
+      .y = y,
+      .w = w,
+      .h = h
+    },
     .font = font,
     .textColor = textColor,
-    .wrap = wrap,
     .buffer = buffer,
-    .padding = padding
+    .outDated = true
   };
   return tBox;
+}
+
+void GUITextBox_setPos(GUITextBox *tBox, float x, float y){
+  SDL_assert(tBox);
+  tBox->bounds.x = x, tBox->bounds.y = y;
+}
+
+void GUITextBox_setDim(GUITextBox *tBox, float w, float h){
+  SDL_assert(tBox);
+  tBox->outDated |= tBox->bounds.w != w || tBox->bounds.h != h;
+  tBox->bounds.w = w, tBox->bounds.h = h;
 }
 
 void GUITextBox_setFont(GUITextBox *tBox, TTF_Font *font){
   SDL_assert(tBox);
   SDL_assert(font);
+  tBox->outDated |= font != tBox->font;
   tBox->font = font;
 }
 
 void GUITextBox_setTextColor(GUITextBox *tBox, SDL_Color textColor){
   SDL_assert(tBox);
+  tBox->outDated |= *(int*)&textColor != *(int*)&tBox->textColor;
   tBox->textColor = textColor;
-}
-
-void GUITextBox_setWrapping(GUITextBox *tBox, bool wrap){
-  SDL_assert(tBox);
-  tBox->wrap = wrap;
-}
-
-void GUITextBox_setPadding(GUITextBox *tBox, Uint16 padding){
-  SDL_assert(tBox);
-  tBox->padding = padding;
 }
 
 void GUITextBox_draw(GUITextBox *tBox, SDL_Renderer *rend){
   SDL_assert(tBox);
   SDL_assert(rend);
-  GUIRect_draw(&tBox->gRect, rend);
-  Uint16 pad = tBox->padding;
-  SDL_Rect intRect = {
-    .x = tBox->gRect.x + pad,
-    .y = tBox->gRect.y + pad,
-    .w = tBox->gRect.w - pad / 2,
-    .h = tBox->gRect.h - pad / 2
+  if(tBox->outDated) GUITextBox_preRender(tBox, rend);
+  int w, h;
+  TTF_GetStringSize(tBox->font, tBox->buffer, 0, &w, &h);
+  SDL_FRect boundRect = {
+    .x = tBox->bounds.x,
+    .y = tBox->bounds.y,
+    .w = SDL_min(w, tBox->bounds.w),
+    .h = SDL_min(h * SDL_ceilf(w / tBox->bounds.w), tBox->bounds.h)
   };
+  SDL_RenderTexture(rend, tBox->preRender, NULL, &boundRect);
+}
 
+void GUITextBox_setBuffer(GUITextBox *tBox, char *buffer){
+  SDL_assert(tBox);
+  SDL_assert(buffer);
+  tBox->outDated |= buffer != tBox->buffer;
+  tBox->buffer = buffer;
+}
+
+void GUITextBox_destroy(GUITextBox *tBox){
+  SDL_assert(tBox);
+  SDL_DestroyTexture(tBox->preRender);
+  *tBox = (GUITextBox){0};
 }
